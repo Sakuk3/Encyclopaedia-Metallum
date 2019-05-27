@@ -30,14 +30,13 @@ def fetch_band(id,update=False):
     band.update({'name':name_and_link.getText()})
 
     band_stats = soup.find(id='band_stats').find_all('dd')
-
     band.update({'country':     sanitise_text(band_stats[0].getText())})
     band.update({'location':    sanitise_text(band_stats[1].getText())})
     band.update({'status':      sanitise_text(band_stats[2].getText())})
     band.update({'formed':      sanitise_text(band_stats[3].getText())})
     band.update({'genre':       sanitise_text(band_stats[4].getText())})
     band.update({'themes':      sanitise_text(band_stats[5].getText())})
-    band.update({'years_active':sanitise_text(band_stats[7].getText().replace(' ',''))})
+    band.update({'years_active':sanitise_text(str(band_stats[7]).replace(' ','').replace('ahref','a href'))[4:-5]})
 
     if band_stats[6].find('a'):
         band.update({'last_label':fetch_label(band_stats[6].find('a')['href']
@@ -103,8 +102,10 @@ def fetch_band(id,update=False):
     band.update({'links':[]})
 
     for link in soup.find_all('a'):
-        band['links'].append({'url':link['href'],
-                              'display_name':link.getText()})
+        # if url starts with a '#' It isn't a proper link(used by the website as internal link)
+        if link['href'][0] != '#':
+            band['links'].append({'url':link['href'],
+                                  'display_name':link.getText()})
 
     # Fetch discography
     source = requests.get(discography_page.format(id=id),headers=headers).text
@@ -149,6 +150,5 @@ def sanitise_text(str):
 
 
 if __name__ == '__main__':
-    fetch_band(3540390292)
+    fetch_band(3540429294)
     #fetch_band(75044)
-    #crawl_band('https://www.metal-archives.com/bands/Craving/81077')
