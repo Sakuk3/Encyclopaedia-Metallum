@@ -1,1 +1,2 @@
-add status(past, present, past(live),...) to bend memberships and crawler
+Band:
+    years active as function(link to new band)

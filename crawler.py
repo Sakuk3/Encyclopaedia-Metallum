@@ -2,6 +2,8 @@
 import requests
 from bs4 import BeautifulSoup
 
+import json
+
 base_url =      'https://www.metal-archives.com'
 
 band_page =         base_url + '/band/view/id/{id}'
@@ -29,60 +31,69 @@ def fetch_band(id,update=False):
 
     band_stats = soup.find(id='band_stats').find_all('dd')
 
-    band.update({'country':     band_stats[0].getText()})
-    band.update({'location':    band_stats[1].getText()})
-    band.update({'status':      band_stats[2].getText()})
-    band.update({'formed':      band_stats[3].getText()})
-    band.update({'genre':       band_stats[4].getText()})
-    band.update({'themes':      band_stats[5].getText()})
-    band.update({'last_label':fetch_label(band_stats[6].find('a')['href']
-                                                       .split('/')[-1])})
+    band.update({'country':     sanitise_text(band_stats[0].getText())})
+    band.update({'location':    sanitise_text(band_stats[1].getText())})
+    band.update({'status':      sanitise_text(band_stats[2].getText())})
+    band.update({'formed':      sanitise_text(band_stats[3].getText())})
+    band.update({'genre':       sanitise_text(band_stats[4].getText())})
+    band.update({'themes':      sanitise_text(band_stats[5].getText())})
+    band.update({'years_active':sanitise_text(band_stats[7].getText().replace(' ',''))})
 
-    band.update({'years_active':sanitise_text(band_stats[7].getText())})
+    if band_stats[6].find('a'):
+        band.update({'last_label':fetch_label(band_stats[6].find('a')['href']
+                                                       .split('/')[-1])})
+    else:
+        band.update({'last_label': sanitise_text(band_stats[6].getText())})
 
     # Fetch Band members
     band.update({'members':[]})
 
-    for member in soup.find('div',class_='ui-tabs-panel-content').find_all('tr',class_='lineupRow'):
-        person = fetch_person(member.find_all('td')[0].find('a')['href'].split('/')[-1])
-        text = sanitise_text(member.find_all('td')[1].getText())
-        positiones = []
-        in_brackets = False
-        last_pointer = 0
-        temp_position = ''
-        for index,c in enumerate(text):
-            if in_brackets:
-                if c == ')':
-                    for position in temp_position.split(','):
-                        for time in text[last_pointer:index].replace('(','').replace(')','').split(','):
-                            timespan = time.split('-')
-                            started = timespan[0]
-                            if len(timespan) == 2:
-                                if timespan[1] == 'present':
-                                    ended = None
+    for member in soup.find('div',class_='ui-tabs-panel-content').find_all('tr'):
+        status = None
+        if member['class'][0] == 'lineupHeaders':
+            status = sanitise_text(member.getText())
+        elif member['class'][0] == 'lineupRow':
+            person = fetch_person(member.find_all('td')[0].find('a')['href'].split('/')[-1])
+            text = sanitise_text(member.find_all('td')[1].getText())
+            positiones = []
+            in_brackets = False
+            last_pointer = 0
+            temp_position = ''
+            for index,c in enumerate(text):
+                if in_brackets:
+                    if c == ')':
+                        for position in temp_position.split(','):
+                            for time in text[last_pointer:index].replace('(','').replace(')','').split(','):
+                                timespan = time.split('-')
+                                started = timespan[0]
+                                if len(timespan) == 2:
+                                    if timespan[1] == 'present':
+                                        ended = None
+                                    else:
+                                        ended = timespan[1]
                                 else:
-                                    ended = timespan[1]
-                            else:
-                                ended = timespan[0]
-                            band['members'].append({
-                                'person':person,
-                                'position':position,
-                                'started':started,
-                                'ended':ended
-                                })
-                    temp_position = ''
+                                    ended = timespan[0]
+                                band['members'].append({
+                                    'person':person,
+                                    'position':position,
+                                    'started':started,
+                                    'ended':ended,
+                                    'status':status
+                                    })
+                        temp_position = ''
+                        last_pointer = index
+                        in_brackets = False
+                elif c == '(' and (text[index+1].isdigit() or text[index+1] == '?'):
+                    temp_position = text[last_pointer:index].replace('),','')
                     last_pointer = index
-                    in_brackets = False
-            elif c == '(' and text[index+1].isdigit():
-                temp_position = text[last_pointer:index].replace('),','')
-                last_pointer = index
-                in_brackets = True
-        if last_pointer+1 != len(text):
-            band['members'].append({
-                            'person':person,
-                            'position':text,
-                            'started':None,
-                            'ended':None})
+                    in_brackets = True
+            if last_pointer+1 < len(text):
+                band['members'].append({
+                                'person':person,
+                                'position':text[last_pointer:],
+                                'started':None,
+                                'ended':None,
+                                'status':status})
 
     band.update({'description':requests.get(read_more_page.format(id=id),headers=headers).text})
 
@@ -100,9 +111,12 @@ def fetch_band(id,update=False):
     soup = BeautifulSoup(source, 'lxml')
     entrys = soup.find('tbody').find_all('tr')
     band.update({'albums':[]})
+    # checks if albums are present, if not text with em tag is displayed
+    if not entrys[0].find('em'):
+        for entry in entrys:
+            band['albums'].append(fetch_album(entry.find('a')['href'].split('/')[-1]))
 
-    for entry in entrys:
-        band['albums'].append(fetch_album(entry.find('a')['href'].split('/')[-1]))
+    print(json.dumps(band, indent = 4))
 
 def fetch_label(id,update=False):
     if update:
@@ -127,9 +141,14 @@ def fetch_album(id,update=False):
     return id
 
 def sanitise_text(str):
-    return str.replace(" ", "").replace("\t", "").replace("\n", "").replace(u'\xa0', u'')
+    str = str.replace("\t", "") .replace("\n", "").replace(u'\xa0', u'')
+    if str == 'N/A':
+        str = None
+    return str
+
+
 
 if __name__ == '__main__':
-    #fetch_band(1)
-    fetch_band(81077)
+    fetch_band(3540390292)
+    #fetch_band(75044)
     #crawl_band('https://www.metal-archives.com/bands/Craving/81077')

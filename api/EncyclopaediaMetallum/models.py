@@ -78,6 +78,7 @@ class Worked_on(models.Model):
 class Membership(models.Model):
     band =         models.ForeignKey(Band, on_delete=models.CASCADE)
     person =       models.ForeignKey(Person, on_delete=models.CASCADE)
-    position =          models.CharField(max_length=256)
+    position =     models.CharField(max_length=256)
+    status =       models.CharField(max_length=256)    
     started =      models.DateField()
     ended =        models.DateField()
