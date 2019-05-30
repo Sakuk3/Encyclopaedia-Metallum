@@ -1,2 +1,0 @@
-Band:
-    years active as function(link to new band)

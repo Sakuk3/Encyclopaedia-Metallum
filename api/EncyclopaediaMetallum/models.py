@@ -57,7 +57,8 @@ class Album(models.Model):
     label =         models.ForeignKey(Lable, on_delete=models.CASCADE)
     format =        models.CharField(max_length=256)
     notes =         models.TextField(blank=True)
-    duration =      models.DurationField()
+    limitation =    models.IntegerField()
+    dersion_description = odels.CharField(max_length=256)
     band_members =  models.ManyToManyField(Person,through='Worked_on')
     Miscellaneous_staff = models.ManyToManyField(Person,through='Worked_on')
 
@@ -79,6 +80,6 @@ class Membership(models.Model):
     band =         models.ForeignKey(Band, on_delete=models.CASCADE)
     person =       models.ForeignKey(Person, on_delete=models.CASCADE)
     position =     models.CharField(max_length=256)
-    status =       models.CharField(max_length=256)    
+    status =       models.CharField(max_length=256)
     started =      models.DateField()
     ended =        models.DateField()

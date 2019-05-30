@@ -10,6 +10,7 @@ band_page =         base_url + '/band/view/id/{id}'
 read_more_page =    base_url + '/band/read-more/id/{id}'
 discography_page =  base_url + '/band/discography/id/{id}/tab/all'
 band_links_page =   base_url + '/link/ajax-list/type/band/id/{id}'
+random_band_page =  base_url + '/band/random'
 
 album_page =        base_url + '/albums/view/id/{id}'
 
@@ -119,6 +120,14 @@ def fetch_band(id,update=False):
 
     print(json.dumps(band, indent = 4))
 
+def fetch_album(id,update=False):
+    if update:
+        # Check if album already exists
+        # if not create album
+        pass
+    return id
+
+
 def fetch_label(id,update=False):
     if update:
         # Check if label already exists
@@ -134,13 +143,6 @@ def fetch_person(id,update=False):
         pass
     return id
 
-def fetch_album(id,update=False):
-    if update:
-        # Check if album already exists
-        # if not create album
-        pass
-    return id
-
 def sanitise_text(str):
     str = str.replace("\t", "") .replace("\n", "").replace(u'\xa0', u'')
     if str == 'N/A':
@@ -150,5 +152,6 @@ def sanitise_text(str):
 
 
 if __name__ == '__main__':
-    fetch_band(3540429294)
-    #fetch_band(75044)
+    for i in range(10):
+        r = requests.get(random_band_page,headers=headers)
+        fetch_band(r.url.split('/')[-1])
