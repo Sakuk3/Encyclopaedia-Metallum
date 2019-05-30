@@ -58,7 +58,7 @@ class Album(models.Model):
     format =        models.CharField(max_length=256)
     notes =         models.TextField(blank=True)
     limitation =    models.IntegerField()
-    dersion_description = odels.CharField(max_length=256)
+    version_description = odels.CharField(max_length=256)
     band_members =  models.ManyToManyField(Person,through='Worked_on')
     Miscellaneous_staff = models.ManyToManyField(Person,through='Worked_on')
 
